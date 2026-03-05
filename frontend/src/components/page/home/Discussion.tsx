@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
@@ -13,7 +13,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Chats } from "../../types/chats";
 
-const SOCKET_URL = "http://localhost:5000"; // replace with your server URL
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:5000";
 
 export default function Discussion() {
   const t = useTranslations("community");
@@ -252,7 +252,7 @@ export default function Discussion() {
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl">
-                  🌾
+                  ðŸŒ¾
                 </div>
                 <span
                   className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${
@@ -307,7 +307,7 @@ export default function Discussion() {
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mb-4">
-                  <span className="text-5xl">💭</span>
+                  <span className="text-5xl">ðŸ’­</span>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">
                   {t("discussion.noMessages")}
@@ -422,3 +422,4 @@ export default function Discussion() {
     </main>
   );
 }
+

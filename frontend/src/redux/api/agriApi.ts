@@ -1,4 +1,4 @@
-import { TranslatedString } from "@/components/types/negotiation";
+﻿import { TranslatedString } from "@/components/types/negotiation";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 interface RecommendationParams {
@@ -18,7 +18,7 @@ interface recommendationResult {
 export const agriApi = createApi({
   reducerPath: "agriApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "https://smartagriwastedataset.lemonmoss-6d514309.centralindia.azurecontainerapps.io",
+    baseUrl:"https://smartagriwastedataset.lemonmoss-6d514309.centralindia.azurecontainerapps.io",
   }),
   tagTypes: ["Agri"],
   endpoints: (builder) => ({
@@ -40,3 +40,4 @@ export const agriApi = createApi({
 });
 
 export const { useLazyGetRecommendationsQuery } = agriApi;
+
