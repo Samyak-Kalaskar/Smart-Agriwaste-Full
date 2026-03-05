@@ -1,7 +1,6 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -9,7 +8,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations, useLocale } from "next-intl";
 import {
   Form,
-  FormControl,
   FormField,
   FormItem,
   FormLabel,
@@ -21,6 +19,8 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
 import { useLazyGetProfileQuery } from "@/redux/api/authApi";
+import { FormInput } from "@/components/common/form/FormInput";
+import { FileUploadInput } from "@/components/common/form/FileUploadInput";
 
 const formSchema = z.object({
   phone: z.string().optional(),
@@ -120,22 +120,12 @@ export default function Profile() {
     }
   }, [farmerId, form, profiledata]);
 
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setPreview: React.Dispatch<React.SetStateAction<string | null>>,
-    field: { onChange: (value: string | ArrayBuffer | null) => void },
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleAadharFileChange = (file: File | null) => {
+    setFiles({ ...files, aadharFile: file });
+  };
 
-    setFiles({ ...files, [e.target.name]: file });
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreview(reader.result as string);
-      field.onChange(reader.result);
-    };
-    reader.readAsDataURL(file);
+  const handleFarmDocFileChange = (file: File | null) => {
+    setFiles({ ...files, farmdocFile: file });
   };
 
   const uploadToImageKit = async (file: File, folder: string) => {
@@ -281,39 +271,21 @@ export default function Profile() {
                     {t("contact.heading")}
                   </h3>
                   <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
+                    <FormInput
                       control={form.control}
                       name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-gray-700">
-                            {t("fields.phone")}
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder={t("placeholders.phone")}
-                              {...field}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
+                      label={t("fields.phone")}
+                      placeholder={t("placeholders.phone")}
+                      type="text"
+                      classname="h-12 border-2 border-gray-200 rounded-lg"
                     />
-                    <FormField
+                    <FormInput
                       control={form.control}
                       name="aadharnumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-gray-700">
-                            {t("fields.aadharnumber")}
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder={t("placeholders.aadharnumber")}
-                              {...field}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
+                      label={t("fields.aadharnumber")}
+                      placeholder={t("placeholders.aadharnumber")}
+                      type="text"
+                      classname="h-12 border-2 border-gray-200 rounded-lg"
                     />
                   </div>
                 </div>
@@ -334,23 +306,14 @@ export default function Profile() {
                       "houseBuildingName",
                       "roadarealandmarkName",
                     ].map((key) => (
-                      <FormField
+                      <FormInput
                         key={key}
                         control={form.control}
                         name={key as keyof FormValues}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-gray-700">
-                              {t(`fields.${key}`)}
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder={t(`placeholders.${key}`)}
-                                {...field}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
+                        label={t(`fields.${key}`)}
+                        placeholder={t(`placeholders.${key}`)}
+                        type="text"
+                        classname="h-12 border-2 border-gray-200 rounded-lg"
                       />
                     ))}
                   </div>
@@ -365,25 +328,16 @@ export default function Profile() {
                   </h3>
                   <div className="grid md:grid-cols-3 gap-6">
                     {["farmNumber", "farmArea", "farmUnit"].map((key) => (
-                      <FormField
+                      <FormInput
                         key={key}
                         control={form.control}
                         name={key as keyof FormValues}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-gray-700">
-                              {t(`fields.${key}`)}
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder={`Enter ${fieldLabels[
-                                  key
-                                ].toLowerCase()}`}
-                                {...field}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
+                        label={t(`fields.${key}`)}
+                        placeholder={`Enter ${fieldLabels[
+                          key
+                        ].toLowerCase()}`}
+                        type="text"
+                        classname="h-12 border-2 border-gray-200 rounded-lg"
                       />
                     ))}
                   </div>
@@ -397,70 +351,28 @@ export default function Profile() {
                     {t("documents.heading")}
                   </h3>
                   <div className="grid md:grid-cols-2 gap-8">
-                    <FormField
+                    <FileUploadInput
                       control={form.control}
                       name="aadharUrl"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-gray-700">
-                            {t("documents.aadhar")}
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              name="aadharFile"
-                              onChange={(e) =>
-                                handleFileChange(e, setAadharPreview, field)
-                              }
-                            />
-                          </FormControl>
-                          {aadharPreview && (
-                            <div className="mt-3">
-                              <Image
-                                src={aadharPreview}
-                                alt="Aadhar preview"
-                                className="rounded-lg border-2 border-gray-200 shadow-sm"
-                                width={200}
-                                height={120}
-                              />
-                            </div>
-                          )}
-                        </FormItem>
-                      )}
+                      label={t("documents.aadhar")}
+                      accept="image/*"
+                      preview={aadharPreview}
+                      onPreviewChange={setAadharPreview}
+                      onFileChange={handleAadharFileChange}
+                      classname="border-2 border-dashed border-gray-300 rounded-lg"
+                      maxSize={5}
                     />
 
-                    <FormField
+                    <FileUploadInput
                       control={form.control}
                       name="farmDocUrl"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-gray-700">
-                            {t("documents.farm")}
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              name="farmdocFile"
-                              onChange={(e) =>
-                                handleFileChange(e, setFarmDocPreview, field)
-                              }
-                            />
-                          </FormControl>
-                          {farmDocPreview && (
-                            <div className="mt-3">
-                              <Image
-                                src={farmDocPreview}
-                                alt="Farm document preview"
-                                className="rounded-lg border-2 border-gray-200 shadow-sm"
-                                width={200}
-                                height={120}
-                              />
-                            </div>
-                          )}
-                        </FormItem>
-                      )}
+                      label={t("documents.farm")}
+                      accept="image/*"
+                      preview={farmDocPreview}
+                      onPreviewChange={setFarmDocPreview}
+                      onFileChange={handleFarmDocFileChange}
+                      classname="border-2 border-dashed border-gray-300 rounded-lg"
+                      maxSize={5}
                     />
                   </div>
                 </div>
