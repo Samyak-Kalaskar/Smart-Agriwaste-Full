@@ -12,13 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -36,9 +29,9 @@ import {
 } from "lucide-react";
 import addressJson from "@/../public/Address.json";
 import { toast } from "sonner";
-import axios from "axios";
 import { useUser } from "@clerk/nextjs";
 import { useForm } from "react-hook-form";
+import { FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   FarmerAccountForm,
@@ -46,6 +39,8 @@ import {
 } from "@/components/types/zod/farmerAccount.zod";
 import { uploadImage } from "@/utils/imagekit";
 import { useCreateProfileMutation } from "@/redux/api/authApi";
+import { FormInput } from "@/components/common/form/FormInput";
+import { SelectInput } from "@/components/common/form/SelectInput";
 
 interface AddressType {
   states: string[];
@@ -62,15 +57,7 @@ export default function CreateAccountFarmer() {
 
   const [step, setStep] = useState(1);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    getValues,
-    trigger,
-    formState: { errors, isSubmitting },
-  } = useForm({
+  const methods = useForm({
     resolver: zodResolver(farmerAccountSchema),
     defaultValues: {
       aadharnumber: "",
@@ -88,6 +75,15 @@ export default function CreateAccountFarmer() {
     mode: "onBlur",
   });
 
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    trigger,
+    formState: { errors, isSubmitting },
+  } = methods;
+
   const role = user?.unsafeMetadata.role;
 
   useEffect(() => {
@@ -98,21 +94,8 @@ export default function CreateAccountFarmer() {
 
   const [createProfile, { isLoading }] = useCreateProfileMutation();
 
-  const formatAadhaar = (value: string) => {
-    return value
-      .replace(/\D/g, "")
-      .replace(/(\d{4})(?=\d)/g, "$1 ")
-      .trim();
-  };
-
-  const formatPhone = (value: string) => {
-    return value.replace(/\D/g, "").slice(0, 10);
-  };
-
   const uploadToImageKit = async (file: File, folder: string) => {
-    const upload = uploadImage(file, folder);
-
-    return upload;
+    return uploadImage(file, folder);
   };
 
   const step1Fields: (keyof FarmerAccountForm)[] = [
@@ -125,13 +108,6 @@ export default function CreateAccountFarmer() {
     "village",
     "houseBuildingName",
     "roadarealandmarkName",
-  ];
-
-  const step2Fields: (keyof FarmerAccountForm)[] = [
-    "farmNumber",
-    "farmdoc",
-    "farmArea",
-    "farmUnit",
   ];
 
   const handleNextStep = async () => {
@@ -325,7 +301,8 @@ export default function CreateAccountFarmer() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <FormProvider {...methods}>
+            <form onSubmit={handleSubmit(onSubmit)}>
             <div className="overflow-hidden">
               <div
                 className="flex transition-transform duration-500 ease-in-out"
@@ -345,33 +322,16 @@ export default function CreateAccountFarmer() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <CreditCard className="h-3.5 w-3.5" />
-                        {t("fields.aadhaarNumber")}{" "}
-                        <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        {...register("aadharnumber")}
-                        value={watch("aadharnumber")}
-                        onChange={(e) =>
-                          setValue(
-                            "aadharnumber",
-                            formatAadhaar(e.target.value),
-                            { shouldValidate: true },
-                          )
-                        }
+                      <FormInput
+                        control={control}
+                        name="aadharnumber"
+                        label={`${t("fields.aadhaarNumber")} *`}
+                        type="text"
                         placeholder="XXXX XXXX XXXX"
-                        maxLength={14}
-                        className={`h-12 ${
+                        classname={`h-12 ${
                           errors.aadharnumber ? "border-red-500" : ""
                         }`}
                       />
-                      {errors.aadharnumber && (
-                        <p className="text-sm text-red-500 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {errors.aadharnumber.message}
-                        </p>
-                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -426,31 +386,16 @@ export default function CreateAccountFarmer() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <Phone className="h-3.5 w-3.5" />
-                        {t("fields.phone")}{" "}
-                        <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        {...register("phone")}
-                        value={watch("phone")}
-                        onChange={(e) =>
-                          setValue("phone", formatPhone(e.target.value), {
-                            shouldValidate: true,
-                          })
-                        }
+                      <FormInput
+                        control={control}
+                        name="phone"
+                        label={`${t("fields.phone")} *`}
+                        type="tel"
                         placeholder="+91 XXXXX XXXXX"
-                        maxLength={15}
-                        className={`h-12 ${
+                        classname={`h-12 ${
                           errors.phone ? "border-red-500" : ""
                         }`}
                       />
-                      {errors.phone && (
-                        <p className="text-sm text-red-500 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {errors.phone.message}
-                        </p>
-                      )}
                     </div>
                   </div>
 
@@ -465,240 +410,112 @@ export default function CreateAccountFarmer() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* State */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">
-                          {t("fields.state")}{" "}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Select
-                          value={selectedState}
-                          onValueChange={async (value) => {
-                            setValue("state", value, { shouldValidate: true });
-                            setValue("district", "", { shouldValidate: true });
-                            setValue("taluka", "", { shouldValidate: true });
-                            setValue("village", "", { shouldValidate: true });
-                            await trigger([
-                              "state",
-                              "district",
-                              "taluka",
-                              "village",
-                            ]);
-                          }}
-                        >
-                          <SelectTrigger
-                            className={
-                              errors.state ? "border-red-500 h-12" : "h-12"
-                            }
-                          >
-                            <SelectValue placeholder="Select State" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Address.states.map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {s}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {errors.state && (
-                          <p className="text-sm text-red-500 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            {errors.state.message}
-                          </p>
-                        )}
+                      <div>
+                        <SelectInput
+                          control={control}
+                          name="state"
+                          label={`${t("fields.state")} *`}
+                          option={Address.states.map((s) => ({
+                            label: s,
+                            value: s,
+                          }))}
+                          placeholder="Select State"
+                          classname={`h-12 ${
+                            errors.state ? "border-red-500" : ""
+                          }`}
+                        />
                       </div>
-                      {watch("farmArea") && (
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-sm text-blue-900">
-                            <span className="font-semibold">
-                              {t("labels.totalFarmArea")}
-                            </span>{" "}
-                            {watch("farmArea")}{" "}
-                            {watch("farmUnit") === "hectare"
-                              ? t("units.hectarePlural")
-                              : t("units.acrePlural")}
-                            {watch("farmUnit") === "hectare" &&
-                              watch("farmArea") && (
-                                <span className="text-blue-600">
-                                  {" "}
-                                  ≈{" "}
-                                  {(
-                                    parseFloat(watch("farmArea")) * 2.471
-                                  ).toFixed(2)}{" "}
-                                  {t("units.acrePlural")}
-                                </span>
-                              )}
-                            {watch("farmUnit") === "acre" &&
-                              watch("farmArea") && (
-                                <span className="text-blue-600">
-                                  {" "}
-                                  ≈{" "}
-                                  {(
-                                    parseFloat(watch("farmArea")) / 2.471
-                                  ).toFixed(2)}{" "}
-                                  {t("units.hectarePlural")}
-                                </span>
-                              )}
-                          </p>
-                        </div>
-                      )}
 
                       {/* District */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">
-                          {t("fields.district")}{" "}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Select
-                          value={selectedDistrict}
+                      <div>
+                        <SelectInput
+                          control={control}
+                          name="district"
+                          label={`${t("fields.district")} *`}
+                          option={
+                            selectedState
+                              ? (Address.districts[selectedState] || []).map(
+                                  (d) => ({
+                                    label: d,
+                                    value: d,
+                                  }),
+                                )
+                              : []
+                          }
+                          placeholder={
+                            selectedState ? "Select District" : "Select State first"
+                          }
                           disabled={!selectedState}
-                          onValueChange={async (value) => {
-                            setValue("district", value, {
-                              shouldValidate: true,
-                            });
-                            setValue("taluka", "", { shouldValidate: true });
-                            setValue("village", "", { shouldValidate: true });
-                            await trigger(["district", "taluka", "village"]);
-                          }}
-                        >
-                          <SelectTrigger
-                            className={`h-12 ${
-                              !selectedState
-                                ? "opacity-50"
-                                : errors.district
-                                  ? "border-red-500"
-                                  : ""
-                            }`}
-                          >
-                            <SelectValue
-                              placeholder={
-                                selectedState
-                                  ? "Select District"
-                                  : "Select State first"
-                              }
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(Address.districts[getValues("state")] || []).map(
-                              (d) => (
-                                <SelectItem key={d} value={d}>
-                                  {d}
-                                </SelectItem>
-                              ),
-                            )}
-                          </SelectContent>
-                        </Select>
-                        {errors.district && (
-                          <p className="text-sm text-red-500 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            {errors.district.message}
-                          </p>
-                        )}
+                          classname={`h-12 ${
+                            !selectedState
+                              ? "opacity-50"
+                              : errors.district
+                                ? "border-red-500"
+                                : ""
+                          }`}
+                        />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Taluka */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">
-                          {t("fields.taluka")}{" "}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Select
-                          value={selectedTaluka}
+                      <div>
+                        <SelectInput
+                          control={control}
+                          name="taluka"
+                          label={`${t("fields.taluka")} *`}
+                          option={
+                            selectedDistrict
+                              ? (Address.talukas[selectedDistrict] || []).map(
+                                  (t) => ({
+                                    label: t,
+                                    value: t,
+                                  }),
+                                )
+                              : []
+                          }
+                          placeholder={
+                            selectedDistrict ? "Select Taluka" : "Select District first"
+                          }
                           disabled={!selectedDistrict}
-                          onValueChange={async (value) => {
-                            setValue("taluka", value, {
-                              shouldValidate: true,
-                            });
-                            setValue("village", "", { shouldValidate: true });
-                            await trigger(["taluka", "village"]);
-                          }}
-                        >
-                          <SelectTrigger
-                            className={`h-12 ${
-                              !selectedDistrict
-                                ? "opacity-50"
-                                : errors.taluka
-                                  ? "border-red-500"
-                                  : ""
-                            }`}
-                          >
-                            <SelectValue
-                              placeholder={
-                                selectedDistrict
-                                  ? "Select Taluka"
-                                  : "Select District first"
-                              }
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(Address.talukas[getValues("district")] || []).map(
-                              (t) => (
-                                <SelectItem key={t} value={t}>
-                                  {t}
-                                </SelectItem>
-                              ),
-                            )}
-                          </SelectContent>
-                        </Select>
-                        {errors.taluka && (
-                          <p className="text-sm text-red-500 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            {errors.taluka.message}
-                          </p>
-                        )}
+                          classname={`h-12 ${
+                            !selectedDistrict
+                              ? "opacity-50"
+                              : errors.taluka
+                                ? "border-red-500"
+                                : ""
+                          }`}
+                        />
                       </div>
 
                       {/* Village */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">
-                          {t("fields.village")}{" "}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Select
-                          value={watch("village")}
+                      <div>
+                        <SelectInput
+                          control={control}
+                          name="village"
+                          label={`${t("fields.village")} *`}
+                          option={
+                            selectedTaluka
+                              ? (Address.villages[selectedTaluka] || []).map(
+                                  (v) => ({
+                                    label: v,
+                                    value: v,
+                                  }),
+                                )
+                              : []
+                          }
+                          placeholder={
+                            selectedTaluka ? "Select Village/City" : "Select Taluka first"
+                          }
                           disabled={!selectedTaluka}
-                          onValueChange={async (value) => {
-                            setValue("village", value, {
-                              shouldValidate: true,
-                            });
-                            await trigger("village");
-                          }}
-                        >
-                          <SelectTrigger
-                            className={`h-12 ${
-                              !selectedTaluka
-                                ? "opacity-50"
-                                : errors.village
-                                  ? "border-red-500"
-                                  : ""
-                            }`}
-                          >
-                            <SelectValue
-                              placeholder={
-                                selectedTaluka
-                                  ? "Select Village/City"
-                                  : "Select Taluka first"
-                              }
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(Address.villages[getValues("taluka")] || []).map(
-                              (v) => (
-                                <SelectItem key={v} value={v}>
-                                  {v}
-                                </SelectItem>
-                              ),
-                            )}
-                          </SelectContent>
-                        </Select>
-                        {errors.village && (
-                          <p className="text-sm text-red-500 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            {errors.village.message}
-                          </p>
-                        )}
+                          classname={`h-12 ${
+                            !selectedTaluka
+                              ? "opacity-50"
+                              : errors.village
+                                ? "border-red-500"
+                                : ""
+                          }`}
+                        />
                       </div>
                     </div>
                   </div>
@@ -713,43 +530,29 @@ export default function CreateAccountFarmer() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">
-                        {t("fields.houseNumber")}{" "}
-                        <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        {...register("houseBuildingName")}
+                      <FormInput
+                        control={control}
+                        name="houseBuildingName"
+                        label={`${t("fields.houseNumber")} *`}
+                        type="text"
                         placeholder="e.g., House No. 123, Residential Complex"
-                        className={`h-12 ${
+                        classname={`h-12 ${
                           errors.houseBuildingName ? "border-red-500" : ""
                         }`}
                       />
-                      {errors.houseBuildingName && (
-                        <p className="text-sm text-red-500 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {errors.houseBuildingName.message}
-                        </p>
-                      )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">
-                        {t("fields.road")}{" "}
-                        <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        {...register("roadarealandmarkName")}
+                      <FormInput
+                        control={control}
+                        name="roadarealandmarkName"
+                        label={`${t("fields.road")} *`}
+                        type="text"
                         placeholder="e.g., Near Town Hall, MG Road"
-                        className={`h-12 ${
+                        classname={`h-12 ${
                           errors.roadarealandmarkName ? "border-red-500" : ""
                         }`}
                       />
-                      {errors.roadarealandmarkName && (
-                        <p className="text-sm text-red-500 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {errors.roadarealandmarkName.message}
-                        </p>
-                      )}
                     </div>
                   </div>
 
@@ -777,24 +580,16 @@ export default function CreateAccountFarmer() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FileText className="h-3.5 w-3.5" />
-                        {t("fields.farmNumber")}{" "}
-                        <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        {...register("farmNumber")}
+                      <FormInput
+                        control={control}
+                        name="farmNumber"
+                        label={`${t("fields.farmNumber")} *`}
+                        type="text"
                         placeholder="Enter your land document number"
-                        className={`h-12 ${
+                        classname={`h-12 ${
                           errors.farmNumber ? "border-red-500" : ""
                         }`}
                       />
-                      {errors.farmNumber && (
-                        <p className="text-sm text-red-500 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {errors.farmNumber.message}
-                        </p>
-                      )}
                       <p className="text-xs text-gray-500">
                         {t("hints.farmNumber")}
                       </p>
@@ -852,61 +647,31 @@ export default function CreateAccountFarmer() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">
-                          {t("fields.totalArea")}{" "}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
+                      <div>
+                        <FormInput
+                          control={control}
+                          name="farmArea"
+                          label={`${t("fields.totalArea")} *`}
                           type="number"
-                          step="0.01"
-                          min="0.01"
-                          {...register("farmArea")}
-                          value={watch("farmArea")}
-                          onChange={(e) =>
-                            setValue("farmArea", e.target.value, {
-                              shouldValidate: true,
-                            })
-                          }
                           placeholder="e.g., 5.5"
-                          className={`h-12 ${
+                          classname={`h-12 ${
                             errors.farmArea ? "border-red-500" : ""
                           }`}
                         />
-                        {errors.farmArea && (
-                          <p className="text-sm text-red-500 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            {errors.farmArea.message}
-                          </p>
-                        )}
                       </div>
 
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">
-                          {t("fields.unit")}{" "}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Select
-                          value={watch("farmUnit")}
-                          onValueChange={async (value) => {
-                            setValue("farmUnit", value as "hectare" | "acre", {
-                              shouldValidate: true,
-                            });
-                            await trigger("farmUnit");
-                          }}
-                        >
-                          <SelectTrigger className="h-12 border-green-300 bg-green-50/30">
-                            <SelectValue placeholder="Select unit" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="hectare">
-                              {t("units.hectare")}
-                            </SelectItem>
-                            <SelectItem value="acre">
-                              {t("units.acre")}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <div>
+                        <SelectInput
+                          control={control}
+                          name="farmUnit"
+                          label={`${t("fields.unit")} *`}
+                          option={[
+                            { label: t("units.hectare"), value: "hectare" },
+                            { label: t("units.acre"), value: "acre" },
+                          ]}
+                          placeholder="Select unit"
+                          classname="h-12 border-green-300 bg-green-50/30"
+                        />
                       </div>
                     </div>
 
@@ -1006,6 +771,7 @@ export default function CreateAccountFarmer() {
               </div>
             </div>
           </form>
+          </FormProvider>
         </CardContent>
       </Card>
     </div>

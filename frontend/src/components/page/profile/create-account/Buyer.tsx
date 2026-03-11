@@ -11,13 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
   Leaf,
@@ -32,9 +25,8 @@ import {
 } from "lucide-react";
 import addressJson from "@/../public/Address.json";
 import { toast } from "sonner";
-import axios from "axios";
 import { useUser } from "@clerk/nextjs";
-import { useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import {
@@ -43,6 +35,8 @@ import {
 } from "@/components/types/zod/buyerAccount.zod";
 import { uploadImage } from "@/utils/imagekit";
 import { useCreateProfileMutation } from "@/redux/api/authApi";
+import { FormInput } from "@/components/common/form/FormInput";
+import { SelectInput } from "@/components/common/form/SelectInput";
 
 interface AddressType {
   states: string[];
@@ -59,7 +53,7 @@ export default function CreateAccount() {
 
   const [createProfile, { isLoading }] = useCreateProfileMutation();
 
-  const formdata = useForm<BuyerAccountForm>({
+  const methods = useForm<BuyerAccountForm>({
     resolver: zodResolver(buyerAccountSchema),
     defaultValues: {
       aadharnumber: "",
@@ -76,14 +70,13 @@ export default function CreateAccount() {
   });
 
   const {
-    register,
+    control,
     handleSubmit,
     setValue,
     watch,
-    getValues,
     trigger,
     formState: { errors, isSubmitting },
-  } = formdata;
+  } = methods;
 
   const role = user?.unsafeMetadata.role;
   useEffect(() => {
@@ -92,23 +85,8 @@ export default function CreateAccount() {
     }
   }, [role, router]);
 
-  // Format Aadhaar number with spaces
-  const formatAadhaar = (value: string) => {
-    return value
-      .replace(/\D/g, "")
-      .replace(/(\d{4})(?=\d)/g, "$1 ")
-      .trim();
-  };
-
-  // Format phone number
-  const formatPhone = (value: string) => {
-    return value.replace(/\D/g, "").slice(0, 10);
-  };
-
   const uploadToImageKit = async (file: File, folder: string) => {
-    const upload = uploadImage(file, folder);
-
-    return upload;
+    return uploadImage(file, folder);
   };
 
   const onSubmit = async (data: BuyerAccountForm) => {
@@ -219,7 +197,8 @@ export default function CreateAccount() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <FormProvider {...methods}>
+            <form onSubmit={handleSubmit(onSubmit)}>
             <div className="space-y-6">
               {/* Identity Verification */}
               <div className="space-y-4">
@@ -231,29 +210,16 @@ export default function CreateAccount() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <CreditCard className="h-3.5 w-3.5" />
-                    Aadhaar Number <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    {...register("aadharnumber")}
-                    value={watch("aadharnumber")}
-                    onChange={(e) =>
-                      setValue("aadharnumber", formatAadhaar(e.target.value), {
-                        shouldValidate: true,
-                      })
-                    }
+                  <FormInput
+                    control={control}
+                    name="aadharnumber"
+                    label="Aadhaar Number *"
+                    type="text"
                     placeholder="XXXX XXXX XXXX"
-                    className={`h-12 ${
+                    classname={`h-12 ${
                       errors.aadharnumber ? "border-red-500" : ""
                     }`}
                   />
-                  {errors.aadharnumber && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.aadharnumber.message}
-                    </p>
-                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -307,27 +273,16 @@ export default function CreateAccount() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <Phone className="h-3.5 w-3.5" />
-                    Phone Number <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    {...register("phone")}
-                    value={watch("phone")}
-                    onChange={(e) =>
-                      setValue("phone", formatPhone(e.target.value), {
-                        shouldValidate: true,
-                      })
-                    }
+                  <FormInput
+                    control={control}
+                    name="phone"
+                    label="Phone Number *"
+                    type="tel"
                     placeholder="+91 XXXXX XXXXX"
-                    className={`h-12 ${errors.phone ? "border-red-500" : ""}`}
+                    classname={`h-12 ${
+                      errors.phone ? "border-red-500" : ""
+                    }`}
                   />
-                  {errors.phone && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.phone.message}
-                    </p>
-                  )}
                 </div>
               </div>
 
@@ -342,193 +297,112 @@ export default function CreateAccount() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* State */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">
-                      State <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={selectedState}
-                      onValueChange={async (value) => {
-                        setValue("state", value, { shouldValidate: true });
-                        setValue("district", "", { shouldValidate: true });
-                        setValue("taluka", "", { shouldValidate: true });
-                        setValue("village", "", { shouldValidate: true });
-                        await trigger([
-                          "state",
-                          "district",
-                          "taluka",
-                          "village",
-                        ]);
-                      }}
-                    >
-                      <SelectTrigger
-                        className={errors.state ? "border-red-500" : ""}
-                      >
-                        <SelectValue placeholder="Select State" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Address.states.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {s}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.state && (
-                      <p className="text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {errors.state.message}
-                      </p>
-                    )}
+                  <div>
+                    <SelectInput
+                      control={control}
+                      name="state"
+                      label="State *"
+                      option={Address.states.map((s) => ({
+                        label: s,
+                        value: s,
+                      }))}
+                      placeholder="Select State"
+                      classname={`h-12 ${
+                        errors.state ? "border-red-500" : ""
+                      }`}
+                    />
                   </div>
 
                   {/* District */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">
-                      District <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={selectedDistrict}
+                  <div>
+                    <SelectInput
+                      control={control}
+                      name="district"
+                      label="District *"
+                      option={
+                        selectedState
+                          ? (Address.districts[selectedState] || []).map(
+                              (d) => ({
+                                label: d,
+                                value: d,
+                              }),
+                            )
+                          : []
+                      }
+                      placeholder={
+                        selectedState ? "Select District" : "Select State first"
+                      }
                       disabled={!selectedState}
-                      onValueChange={async (value) => {
-                        setValue("district", value, { shouldValidate: true });
-                        setValue("taluka", "", { shouldValidate: true });
-                        setValue("village", "", { shouldValidate: true });
-                        await trigger(["district", "taluka", "village"]);
-                      }}
-                    >
-                      <SelectTrigger
-                        className={
-                          !selectedState
-                            ? "opacity-50"
-                            : errors.district
-                              ? "border-red-500"
-                              : ""
-                        }
-                      >
-                        <SelectValue
-                          placeholder={
-                            selectedState
-                              ? "Select District"
-                              : "Select State first"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(Address.districts[getValues("state")] || []).map(
-                          (d) => (
-                            <SelectItem key={d} value={d}>
-                              {d}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {errors.district && (
-                      <p className="text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {errors.district.message}
-                      </p>
-                    )}
+                      classname={`h-12 ${
+                        !selectedState
+                          ? "opacity-50"
+                          : errors.district
+                            ? "border-red-500"
+                            : ""
+                      }`}
+                    />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Taluka */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">
-                      Taluka <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={selectedTaluka}
+                  <div>
+                    <SelectInput
+                      control={control}
+                      name="taluka"
+                      label="Taluka *"
+                      option={
+                        selectedDistrict
+                          ? (Address.talukas[selectedDistrict] || []).map(
+                              (t) => ({
+                                label: t,
+                                value: t,
+                              }),
+                            )
+                          : []
+                      }
+                      placeholder={
+                        selectedDistrict ? "Select Taluka" : "Select District first"
+                      }
                       disabled={!selectedDistrict}
-                      onValueChange={async (value) => {
-                        setValue("taluka", value, { shouldValidate: true });
-                        setValue("village", "", { shouldValidate: true });
-                        await trigger(["taluka", "village"]);
-                      }}
-                    >
-                      <SelectTrigger
-                        className={
-                          !selectedDistrict
-                            ? "opacity-50"
-                            : errors.taluka
-                              ? "border-red-500"
-                              : ""
-                        }
-                      >
-                        <SelectValue
-                          placeholder={
-                            selectedDistrict
-                              ? "Select Taluka"
-                              : "Select District first"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(Address.talukas[getValues("district")] || []).map(
-                          (t) => (
-                            <SelectItem key={t} value={t}>
-                              {t}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {errors.taluka && (
-                      <p className="text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {errors.taluka.message}
-                      </p>
-                    )}
+                      classname={`h-12 ${
+                        !selectedDistrict
+                          ? "opacity-50"
+                          : errors.taluka
+                            ? "border-red-500"
+                            : ""
+                      }`}
+                    />
                   </div>
 
                   {/* Village */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">
-                      Village / City <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={watch("village")}
+                  <div>
+                    <SelectInput
+                      control={control}
+                      name="village"
+                      label="Village / City *"
+                      option={
+                        selectedTaluka
+                          ? (Address.villages[selectedTaluka] || []).map(
+                              (v) => ({
+                                label: v,
+                                value: v,
+                              }),
+                            )
+                          : []
+                      }
+                      placeholder={
+                        selectedTaluka ? "Select Village/City" : "Select Taluka first"
+                      }
                       disabled={!selectedTaluka}
-                      onValueChange={async (value) => {
-                        setValue("village", value, { shouldValidate: true });
-                        await trigger("village");
-                      }}
-                    >
-                      <SelectTrigger
-                        className={
-                          !selectedTaluka
-                            ? "opacity-50"
-                            : errors.village
-                              ? "border-red-500"
-                              : ""
-                        }
-                      >
-                        <SelectValue
-                          placeholder={
-                            selectedTaluka
-                              ? "Select Village/City"
-                              : "Select Taluka first"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(Address.villages[getValues("taluka")] || []).map(
-                          (v) => (
-                            <SelectItem key={v} value={v}>
-                              {v}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {errors.village && (
-                      <p className="text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {errors.village.message}
-                      </p>
-                    )}
+                      classname={`h-12 ${
+                        !selectedTaluka
+                          ? "opacity-50"
+                          : errors.village
+                            ? "border-red-500"
+                            : ""
+                      }`}
+                    />
                   </div>
                 </div>
               </div>
@@ -546,35 +420,29 @@ export default function CreateAccount() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    House Number / Building Name
-                  </Label>
-                  <Input
-                    {...register("houseBuildingName")}
+                  <FormInput
+                    control={control}
+                    name="houseBuildingName"
+                    label="House Number / Building Name"
+                    type="text"
                     placeholder="e.g., House No. 123, Residential Complex"
+                    classname={`h-12 ${
+                      errors.houseBuildingName ? "border-red-500" : ""
+                    }`}
                   />
-                  {errors.houseBuildingName && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.houseBuildingName.message}
-                    </p>
-                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    Road, Area, Landmark
-                  </Label>
-                  <Input
-                    {...register("roadarealandmarkName")}
+                  <FormInput
+                    control={control}
+                    name="roadarealandmarkName"
+                    label="Road, Area, Landmark"
+                    type="text"
                     placeholder="e.g., Near Town Hall, MG Road"
+                    classname={`h-12 ${
+                      errors.roadarealandmarkName ? "border-red-500" : ""
+                    }`}
                   />
-                  {errors.roadarealandmarkName && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.roadarealandmarkName.message}
-                    </p>
-                  )}
                 </div>
               </div>
 
@@ -609,7 +477,8 @@ export default function CreateAccount() {
                 </span>
               </p>
             </div>
-          </form>
+            </form>
+          </FormProvider>
         </CardContent>
       </Card>
     </div>

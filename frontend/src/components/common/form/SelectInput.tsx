@@ -51,9 +51,9 @@ export function SelectInput<T extends FieldValues>({
             {label}
           </FormLabel>
           <Select
-            value={field.value}
+            value={field.value || ""}
             disabled={disabled}
-            onValueChange={(v) => field.onChange(v )}
+            onValueChange={(v) => field.onChange(v)}
           >
             <FormControl>
               <SelectTrigger className={classname}>

@@ -43,13 +43,7 @@ export function FormInput<T extends FieldValues>({
               value={field.value ?? ""}
               onChange={(e) => {
                 const value = e.target.value;
-                field.onChange(
-                  type === "number"
-                    ? value === ""
-                      ? undefined
-                      : Number(value)
-                    : value,
-                );
+                field.onChange(value);
               }}
               type={type}
               placeholder={placeholder}
