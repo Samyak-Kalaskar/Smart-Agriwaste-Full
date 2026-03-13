@@ -17,6 +17,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// reusable form components
+import { FormInput } from "@/components/common/form/FormInput";
+import { SelectInput } from "@/components/common/form/SelectInput";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
@@ -62,6 +65,13 @@ export default function Profile() {
     resolver: zodResolver(formSchema),
     defaultValues: {},
   });
+
+  // example options for dropdowns
+  const stateOptions = [
+    { label: t("states.maharashtra"), value: "maharashtra" },
+    { label: t("states.karnataka"), value: "karnataka" },
+    { label: t("states.gujarat"), value: "gujarat" },
+  ];
 
   const [aadharPreview, setAadharPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -246,29 +256,22 @@ export default function Profile() {
                   {t("contactPersonalDetails")}
                 </h3>
                 <div className="grid md:grid-cols-2 gap-6">
-                  <FormField
+                  {/* use reusable FormInput to reduce boilerplate */}
+                  <FormInput
                     control={form.control}
                     name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                          <FormLabel className="text-gray-700">{fieldLabels.phone}</FormLabel>
-                        <FormControl>
-                          <Input placeholder={t("enterField", { field: fieldLabels.phone })} {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
+                    label={fieldLabels.phone}
+                    placeholder={t("enterField", { field: fieldLabels.phone })}
+                    type="text"
+                    classname="w-full"
                   />
-                  <FormField
+                  <FormInput
                     control={form.control}
                     name="aadharnumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700">{fieldLabels.aadharnumber}</FormLabel>
-                        <FormControl>
-                          <Input placeholder={t("enterField", { field: fieldLabels.aadharnumber })} {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
+                    label={fieldLabels.aadharnumber}
+                    placeholder={t("enterField", { field: fieldLabels.aadharnumber })}
+                    type="text"
+                    classname="w-full"
                   />
                 </div>
               </div>
@@ -279,31 +282,29 @@ export default function Profile() {
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">{t("addressDetails")}</h3>
                 <div className="grid md:grid-cols-2 gap-6">
-                  {[
-                    "state",
-                    "district",
-                    "taluka",
-                    "village",
-                    "houseBuildingName",
-                    "roadarealandmarkName",
-                  ].map((key) => (
-                    <FormField
-                      key={key}
-                      control={form.control}
-                      name={key as keyof FormValues}
-                      render={({ field }) => (
-                        <FormItem>
-                              <FormLabel className="text-gray-700">{fieldLabels[key]}</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder={t("enterField", { field: fieldLabels[key] })}
-                              {...field}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  ))}
+                  {/* state dropdown uses SelectInput, others remain text fields */}
+                  <SelectInput
+                    control={form.control}
+                    name="state"
+                    label={fieldLabels.state}
+                    option={stateOptions}
+                    placeholder={t("selectField", { field: fieldLabels.state })}
+                    classname="w-full"
+                  />
+
+                  {["district", "taluka", "village", "houseBuildingName", "roadarealandmarkName"].map(
+                    (key) => (
+                      <FormInput
+                        key={key}
+                        control={form.control}
+                        name={key as keyof FormValues}
+                        label={fieldLabels[key]}
+                        placeholder={t("enterField", { field: fieldLabels[key] })}
+                        type="text"
+                        classname="w-full"
+                      />
+                    )
+                  )}
                 </div>
               </div>
 
@@ -361,3 +362,4 @@ export default function Profile() {
     </div>
   );
 }
+
